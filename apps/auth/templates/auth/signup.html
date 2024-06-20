@@ -1,0 +1,29 @@
+{% extends "auth/base.html" %} {% block title %}ユーザー新規登録{% endblock
+title %} {% block content %}
+<h2>ユーザー新規登録</h2>
+<form
+  action="{{ url 'auth:signup', next=request.args.get('next')}}"
+  method="post"
+  novalidate="novalidate"
+>
+  {% for message in get_flashed_messages() %}
+  <p style="color: red">{{ message }}</p>
+  {% endfor %} {{ form.csrf_token }}
+  <p>
+    {{ form.username.label }} {{ form.username(size=30,
+    placeholder="ユーザー名") }}
+  </p>
+  {% for error in form.username.errors %}
+  <p style="color: red">{{ error }}</p>
+  {% endfor %}
+  <p>{{ form.email.label }} {{ form.email(placeholder="メールアドレス") }}</p>
+  {% for error in form.email.errors %}
+  <p style="color: red">{{ error }}</p>
+  {% endfor %}
+  <p>{{ form.password.label }} {{ form.password(placeholder="パスワード") }}</p>
+  {% for error in form.password.errors %}
+  <p style="color: red">{{ error }}</p>
+  {% endfor %}
+  <p>{{ form.submit() }}</p>
+</form>
+{% endblock content %}
