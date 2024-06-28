@@ -3,7 +3,7 @@ from flask_wtf.form import FlaskForm
 from wtforms.fields.simple import SubmitField
 
 
-class uploadImageFrom(FlaskForm):
+class UploadImageFrom(FlaskForm):
     # ファイルフィールドに必要なバリデーションを設定
     image = FileField(
         validators=[
@@ -12,3 +12,7 @@ class uploadImageFrom(FlaskForm):
         ]
     )
     submit = SubmitField("アップロード")
+
+
+class DetectorForm(FlaskForm):
+    submit = SubmitField("検知")
