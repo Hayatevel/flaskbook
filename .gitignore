@@ -191,4 +191,4 @@ Temporary Items
 # My gitignore file
 local.sqlite
 model.pt
-apps/images/
+apps/images
