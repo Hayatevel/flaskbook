@@ -12,6 +12,7 @@ from flask import (
     flash,
     redirect,
     render_template,
+    request,
     send_from_directory,
     url_for,
 )
@@ -21,7 +22,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from apps.app import db
 from apps.crud.models import User
-from apps.detector.forms import DetectorForm, UploadImageFrom, DeleteForm
+from apps.detector.forms import DeleteForm, DetectorForm, UploadImageFrom
 from apps.detector.models import UserImage, UserImageTag
 
 dt = Blueprint("detector", __name__, template_folder="templates")
@@ -142,6 +143,64 @@ def delete_image(image_id):
         db.session.rollback()
 
     return redirect(url_for("detector.index"))
+
+
+@dt.route("/image/search", methods=["GET"])
+def search():
+    # 画像一覧を取得
+    user_images = db.session.query(User, UserImage).join(
+        UserImage, User.id == UserImage.user_id
+    )
+
+    # GETパラメータから検索ワードを取得する
+    search_text = request.args.get("search")
+    user_image_tag_dict = {}
+    filtered_user_images = []
+
+    # user_imagesをループしてuser_imagesに紐づくタグ情報を検索
+    for user_image in user_images:
+        # 検索ワードが空の場合はすべてのタグを取得する
+        if not search_text:
+            user_image_tags = (
+                db.session.query(UserImageTag)
+                .filter(UserImageTag.user_image_id == user_image.UserImage.id)
+                .all()
+            )
+        else:
+            # 検索ワードで絞り込んだタグを取得する
+            user_image_tags = (
+                db.session.query(UserImageTag)
+                .filter(UserImageTag.user_image_id == user_image.UserImage.id)
+                .filter(UserImageTag.tag_name.like("%" + search_text + "%"))
+                .all()
+            )
+
+            # タグが見つからなかったら画像を返さない
+            if not user_image_tags:
+                continue
+
+            # タグがある場合はタグ情報を取得し直す
+            user_image_tags = (
+                db.session.query(UserImageTag)
+                .filter(UserImageTag.user_image_id == user_image.UserImage.id)
+                .all()
+            )
+        user_image_tag_dict[user_image.UserImage.id] = user_image_tags
+
+        filtered_user_images.append(user_image)
+
+    delete_form = DeleteForm()
+    detector_form = DetectorForm()
+    return render_template(
+        "detector/index.html",
+        # 絞り込んだuser_images配列を渡す
+        user_images=filtered_user_images,
+        # 画像に基づくタグ一覧の辞書を渡す
+        user_image_tag_dict=user_image_tag_dict,
+        # 物体検知フォームをテンプレートに渡す
+        detector_form=detector_form,
+        delete_form=delete_form,
+    )
 
 
 def make_color(labels):
