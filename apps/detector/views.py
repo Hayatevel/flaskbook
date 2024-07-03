@@ -21,7 +21,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from apps.app import db
 from apps.crud.models import User
-from apps.detector.forms import DetectorForm, UploadImageFrom
+from apps.detector.forms import DetectorForm, UploadImageFrom, DeleteForm
 from apps.detector.models import UserImage, UserImageTag
 
 dt = Blueprint("detector", __name__, template_folder="templates")
@@ -49,6 +49,7 @@ def index():
 
     # 物体検知フォームをインスタンス化する
     detector_form = DetectorForm()
+    delete_form = DeleteForm()
 
     return render_template(
         "detector/index.html",
@@ -57,6 +58,7 @@ def index():
         user_image_tag_dict=user_image_tag_dict,
         # 物体検知フォームをテンプレートに渡す
         detector_form=detector_form,
+        delete_form=delete_form,
     )
 
 
@@ -116,6 +118,29 @@ def detect(image_id):
         # エラーログ出力
         current_app.logger.error(e)
         return redirect(url_for("detector.index"))
+    return redirect(url_for("detector.index"))
+
+
+@dt.route("/images/delete/<string:image_id>", methods=["POST"])
+# login_requiredデコレーターをつけてログイン必須とする
+@login_required
+def delete_image(image_id):
+    try:
+        # user_image_tagsテーブルからレコードを削除
+        db.session.query(UserImageTag).filter(
+            UserImageTag.user_image_id == image_id
+        ).delete()
+
+        # user_imageテーブルからレコードを削除
+        db.session.query(UserImage).filter(UserImage.id == image_id).delete()
+        db.session.commit()
+
+    except SQLAlchemyError as e:
+        flash("画像削除処理でエラーが発生しました。")
+        # エラーログ出力
+        current_app.logger.error(e)
+        db.session.rollback()
+
     return redirect(url_for("detector.index"))
 
 
