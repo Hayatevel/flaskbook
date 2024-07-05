@@ -1,7 +1,9 @@
+import json
 import random
 import uuid
 from pathlib import Path
 
+import boto3
 import cv2
 import numpy as np
 import torch
@@ -304,3 +306,53 @@ def save_detected_image_tags(user_image, tags, detected_image_file_name):
         user_image_tag = UserImageTag(user_image_id=user_image.id, tag_name=tag)
         db.session.add(user_image_tag)
     db.session.commit()
+
+
+@dt.route("/trans")
+def translate():
+    translate = boto3.client(
+        "translate",
+        region_name="us-east-1",
+    )
+    # 翻訳したい文字を入力
+    text = "こんにちは!私はpythonのflaskを学習しています!"
+
+    # translateで翻訳した結果をresultで受け取る
+    result = translate.translate_text(
+        Text=text, SourceLanguageCode="ja", TargetLanguageCode="en"
+    )
+    # 翻訳結果だけを取得
+    transtext = result["TranslatedText"]
+
+    # return result
+    return transtext
+
+
+@dt.route("/reko")
+def rekotest():
+    # rekognition サービスクライアントを作成
+    rekognition = boto3.client("rekognition", region_name="us-east-1")
+
+    # 画像ファイルをオープン
+    file_path = Path(current_app.config["UPLOAD_FOLDER"], "face1.JPG")
+
+    with open(file_path, "rb") as file:
+        image_bytes = file.read()
+
+    # 顔を検出
+    result = rekognition.detect_faces(Image={"Bytes": image_bytes}, Attributes=["ALL"])
+    # 結果を整形して表示
+
+    # return json.dumps(result, indent=4)
+
+    # 感情だけ抜き出してリストに置き換える
+    if "FaceDetails" in result:  # 顔が検出できたかチェック
+        for face_detail in result["FaceDetails"]:
+            if "Emotions" in face_detail:  # 感情が分析できたかチェック
+                emotions = face_detail["Emotions"]  # 感情分析結果を取り出す
+                for emotion in emotions:  # 分析結果をコンソールにfor文で順番に出力
+                    print(
+                        f"Emotion: {emotion['Type']}, Confidence: {emotion['Confidence']}"
+                    )
+
+    return emotions
